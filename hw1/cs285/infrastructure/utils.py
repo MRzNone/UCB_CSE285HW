@@ -1,3 +1,5 @@
+from tqdm import trange
+
 import numpy as np
 import time
 
@@ -74,7 +76,7 @@ def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, ren
         TODO implement this function
         Hint1: use sample_trajectory to get each path (i.e. rollout) that goes into paths
     """
-    paths = [sample_trajectory(env, policy, max_path_length, render, render_mode) for _ in range(ntraj)]
+    paths = [sample_trajectory(env, policy, max_path_length, render, render_mode) for _ in trange(ntraj, desc="Sample")]
 
     return paths
 
