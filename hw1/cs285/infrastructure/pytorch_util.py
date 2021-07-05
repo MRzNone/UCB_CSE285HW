@@ -16,6 +16,16 @@ _str_to_activation = {
     'identity': nn.Identity(),
 }
 
+class ResBlock(nn.Module):
+    def __init__(self, in_dim, out_dim, ac):
+        super(ResBlock, self).__init__()
+
+        self.net = nn.Linear(in_dim, out_dim)
+        self.ac = ac
+
+    def forward(self, x):
+        return self.ac(self.net(x)) + x
+
 
 def build_mlp(
         input_size: int,
@@ -47,7 +57,33 @@ def build_mlp(
 
     # TODO: return a MLP. This should be an instance of nn.Module
     # Note: nn.Sequential is an instance of nn.Module.
-    raise NotImplementedError
+    layers_size = [input_size, *([size] * (n_layers + 1)), output_size]
+    layers = []
+
+    hidden_act = _str_to_activation[activation] if isinstance(activation, str) else activation
+    output_act = _str_to_activation[output_activation] if isinstance(activation, str) else output_activation
+
+    for i in range(len(layers_size) - 1):
+        in_dim = layers_size[i]
+        out_dim = layers_size[i + 1]
+
+
+        if i == len(layers_size) - 2:
+            ac = output_act
+        else:
+            ac = hidden_act
+
+        if in_dim == out_dim:
+            layers.append(ResBlock(in_dim, out_dim, ac))
+        else:
+            layers.append(nn.Sequential(
+                nn.Linear(in_dim, out_dim),
+                ac,
+            ))
+
+    module = nn.Sequential(*layers)
+
+    return module
 
 
 device = None
