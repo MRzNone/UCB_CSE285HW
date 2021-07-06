@@ -121,7 +121,7 @@ class MLPPolicySL(MLPPolicy):
             self, observations, actions,
             adv_n=None, acs_labels_na=None, qvals=None
     ):
-        # TODO: update the policy and return the loss
+        # update the policy and return the loss
         observations = ptu.from_numpy(observations)
         pred = self.forward(observations)
         actions = ptu.from_numpy(actions)
