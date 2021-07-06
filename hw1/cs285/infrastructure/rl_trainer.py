@@ -217,7 +217,7 @@ class RL_Trainer(object):
         # and replace paths[i]["action"] with these expert labels
 
         for path in paths:
-            path['action'] = np.array([expert_policy.get_action(obs) for obs in path['observation']])
+            path['action'] = np.array([expert_policy.get_action(obs) for obs in path['observation']]).squeeze()
 
         return paths
 

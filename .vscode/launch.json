@@ -11,7 +11,7 @@
             // "program": "${file}",
             "program": "hw1/cs285/scripts/run_hw1.py",
             "console": "integratedTerminal",
-            "args": ["--expert_policy_file", "hw1/cs285/policies/experts/Ant.pkl", "--env_name", "Ant-v2", "--exp_name", "bc_ant", "--n_iter", "1", "--expert_data", "hw1/cs285/expert_data/expert_data_Ant-v2.pkl", "--video_log_freq", "-1"]
+            "args": ["--do_dagger", "--batch_size", "10", "--expert_policy_file", "hw1/cs285/policies/experts/Ant.pkl", "--env_name", "Ant-v2", "--exp_name", "bc_ant", "--n_iter", "10", "--expert_data", "hw1/cs285/expert_data/expert_data_Ant-v2.pkl", "--video_log_freq", "-1"]
         }
     ]
 }

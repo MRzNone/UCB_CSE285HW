@@ -49,7 +49,6 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
 
         if rollout_done:
             break
-
     return Path(obs, image_obs, acs, rewards, next_obs, terminals)
 
 def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, render=False, render_mode=('rgb_array')):
