@@ -114,7 +114,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             dist = distributions.Categorical(dist_prob)
         else:
             mean = self.mean_net(observation)
-            dist = distributions.Normal(mean, self.logstd)
+            dist = distributions.Normal(mean, self.logstd.exp()[None, :])
 
         return dist
 
@@ -142,10 +142,10 @@ class MLPPolicyPG(MLPPolicy):
         # by the `forward` method
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
 
-        action_prob = self.forward(observations).log_prob(actions)
+        action_prob = self.forward(observations).log_prob(actions).flatten()
 
         loss = -action_prob * advantages.detach()
-        loss = loss.mean()
+        loss = loss.sum()
 
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
@@ -156,7 +156,8 @@ class MLPPolicyPG(MLPPolicy):
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils`
-            targets = utils.normalize(q_values)
+            targets = utils.normalize(q_values, q_values.mean(),
+                                      q_values.std())
             targets = ptu.from_numpy(targets)
 
             ## TODO: use the `forward` method of `self.baseline` to get baseline predictions
