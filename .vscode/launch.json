@@ -12,6 +12,15 @@
             "program": "hw1/cs285/scripts/run_hw1.py",
             "console": "integratedTerminal",
             "args": ["--do_dagger", "--batch_size", "10", "--expert_policy_file", "hw1/cs285/policies/experts/Ant.pkl", "--env_name", "Ant-v2", "--exp_name", "bc_ant", "--n_iter", "10", "--expert_data", "hw1/cs285/expert_data/expert_data_Ant-v2.pkl", "--video_log_freq", "-1"]
+        },
+        {
+            "name": "HW2",
+            "type": "python",
+            "request": "launch",
+            // "program": "${file}",
+            "program": "hw2/cs285/scripts/run_hw2.py",
+            "console": "integratedTerminal",
+            "args": ["--env_name", "InvertedPendulum-v2", "--ep_len", "1000", "--discount", "0.9", "-n", "100", "-l", "2", "-s", "64", "-b", "100", "-lr", "3e-5", "-rtg", "--exp_name", "q2_b100_r3e-5"]
         }
     ]
 }

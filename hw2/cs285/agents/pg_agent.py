@@ -1,5 +1,7 @@
 from cs285.infrastructure import utils
 import numpy as np
+from itertools import accumulate
+from functools import reduce
 
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
@@ -106,7 +108,7 @@ class PGAgent(BaseAgent):
             ## and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils`
             advantages = utils.normalize(advantages, advantages.mean(),
-                                         np.sqrt(advantages.var()))
+                                         advantages.std())
 
         return advantages
 
@@ -136,13 +138,10 @@ class PGAgent(BaseAgent):
         # TODO: create list_of_discounted_returns
         # Hint: note that all entries of this output are equivalent
         # because each sum is from 0 to T (and doesnt involve t)
-        num_steps = len(rewards)
-
-        rewards = np.array(rewards)
-        discount_gamma = np.power(self.gamma, np.arange(num_steps))
-        disounted_return = np.sum(rewards * discount_gamma)
-
-        return disounted_return.repeat(num_steps)
+        rewards = np.array(rewards)[::-1]
+        disounted_return = reduce(lambda ret, rew: self.gamma * ret + rew,
+                                  rewards)
+        return np.array([disounted_return] * len(rewards))
 
     def _discounted_cumsum(self, rewards):
         """
@@ -156,21 +155,8 @@ class PGAgent(BaseAgent):
         # because the summation happens over [t, T] instead of [0, T]
         # HINT2: it is possible to write a vectorized solution, but a solution
         # using a for loop is also fine
-
-        num_steps = len(rewards)
-
         rewards = np.array(rewards)
-        discount_gamma = np.power(self.gamma, np.arange(num_steps))
-        disounted_rewards = rewards * discount_gamma
-
-        discounted_return = []
-        cur = 0
-
-        for cur_reward in reversed(disounted_rewards):
-            cur += cur_reward
-
-            discounted_return.append(cur)
-
-        discounted_return = np.array(discounted_return)[::-1]
-
-        return discounted_return
+        disounted_return = list(
+            accumulate(rewards[::-1], lambda ret, rew: self.gamma * ret + rew))
+        disounted_return = np.array(disounted_return)[::-1]
+        return disounted_return
