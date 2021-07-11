@@ -157,6 +157,7 @@ class MLPPolicyPG(MLPPolicy):
         loss.backward()
         self.optimizer.step()
 
+        baseline_loss = None
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils`
@@ -174,7 +175,7 @@ class MLPPolicyPG(MLPPolicy):
 
             # TODO: compute the loss that should be optimized for training the baseline MLP (`self.baseline`)
             # HINT: use `F.mse_loss`
-            baseline_loss = self.baseline_loss(targets, baseline_predictions)
+            baseline_loss = F.mse_loss(targets, baseline_predictions)
 
             # TODO: optimize `baseline_loss` using `self.baseline_optimizer`
             # HINT: remember to `zero_grad` first
@@ -185,6 +186,8 @@ class MLPPolicyPG(MLPPolicy):
         train_log = {
             'Training Loss': ptu.to_numpy(loss),
         }
+        if baseline_loss is not None:
+            train_log["Training_Baseline_Loss"] = ptu.to_numpy(baseline_loss)
         return train_log
 
     def run_baseline_prediction(self, obs):

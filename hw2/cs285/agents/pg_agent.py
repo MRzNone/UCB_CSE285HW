@@ -16,6 +16,7 @@ class PGAgent(BaseAgent):
         self.env = env
         self.agent_params = agent_params
         self.gamma = self.agent_params['gamma']
+        self.lam = self.gamma / 5
         self.standardize_advantages = self.agent_params[
             'standardize_advantages']
         self.nn_baseline = self.agent_params['nn_baseline']
@@ -112,6 +113,35 @@ class PGAgent(BaseAgent):
 
         return advantages
 
+    def estimate_with_gae(self, rewards_list, obs, next_obs):
+        # split obs into chunks
+        obs_chunks = []
+        next_obs_chunks = []
+
+        cur_st = 0
+        for rewards in rewards_list:
+            rew_len = len(rewards)
+            obs_chunks.append(obs[cur_st:cur_st + rew_len])
+            next_obs_chunks.append(next_obs[cur_st:cur_st + rew_len])
+            cur_st += rew_len
+        assert cur_st == len(obs), "Size mismatch when splitting"
+
+        advantages = np.concatenate([
+            self._calculate_gae(rew, ob, next_ob) for rew, ob, next_ob in zip(
+                rewards_list, obs_chunks, next_obs_chunks)
+        ])
+
+        return advantages
+
+    def _calculate_gae(self, rewards, obs, next_obs):
+        current_v = self.actor.run_baseline_prediction(obs)
+        next_v = self.actor.run_baseline_prediction(next_obs)
+
+        deltas = rewards + self.gamma * next_v - current_v
+        gae = self._discounted_cumsum(deltas, self.gamma * self.lam)
+
+        return gae
+
     #####################################################
     #####################################################
 
@@ -126,7 +156,7 @@ class PGAgent(BaseAgent):
     ################## HELPER FUNCTIONS #################
     #####################################################
 
-    def _discounted_return(self, rewards):
+    def _discounted_return(self, rewards, rate=None):
         """
             Helper function
 
@@ -138,12 +168,13 @@ class PGAgent(BaseAgent):
         # TODO: create list_of_discounted_returns
         # Hint: note that all entries of this output are equivalent
         # because each sum is from 0 to T (and doesnt involve t)
+        rate = self.gamma if rate is None else rate
+
         rewards = np.array(rewards)[::-1]
-        disounted_return = reduce(lambda ret, rew: self.gamma * ret + rew,
-                                  rewards)
+        disounted_return = reduce(lambda ret, rew: rate * ret + rew, rewards)
         return np.array([disounted_return] * len(rewards))
 
-    def _discounted_cumsum(self, rewards):
+    def _discounted_cumsum(self, rewards, rate=None):
         """
             Helper function which
             -takes a list of rewards {r_0, r_1, ..., r_t', ... r_T},
@@ -155,8 +186,10 @@ class PGAgent(BaseAgent):
         # because the summation happens over [t, T] instead of [0, T]
         # HINT2: it is possible to write a vectorized solution, but a solution
         # using a for loop is also fine
+        rate = self.gamma if rate is None else rate
+
         rewards = np.array(rewards)
         disounted_return = list(
-            accumulate(rewards[::-1], lambda ret, rew: self.gamma * ret + rew))
+            accumulate(rewards[::-1], lambda ret, rew: rate * ret + rew))
         disounted_return = np.array(disounted_return)[::-1]
         return disounted_return

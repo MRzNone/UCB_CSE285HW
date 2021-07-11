@@ -20,7 +20,7 @@
             // "program": "${file}",
             "program": "hw2/cs285/scripts/run_hw2.py",
             "console": "integratedTerminal",
-            "args": ["--env_name", "InvertedPendulum-v2", "--ep_len", "1000", "--discount", "0.9", "-n", "100", "-l", "2", "-s", "64", "-b", "100", "-lr", "3e-5", "-rtg", "--exp_name", "q2_b100_r3e-5"]
+            "args": ["--env_name", "LunarLanderContinuous-v2", "--ep_len", "1000", "--discount", "0.99", "-n", "100", "-l", "2", "-s", "64", "-b", "100", "-lr", "0.005", "-rtg", "--nn_baseline", "--exp_name", "q3_b40000_r0.005"]
         }
     ]
 }
