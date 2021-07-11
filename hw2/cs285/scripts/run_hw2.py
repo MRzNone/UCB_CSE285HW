@@ -25,6 +25,7 @@ class PG_Trainer(object):
             'reward_to_go': params['reward_to_go'],
             'nn_baseline': params['nn_baseline'] or params['gae'],
             'gae': params['gae'],
+            'lam': params['lam'],
         }
 
         train_args = {
@@ -97,6 +98,7 @@ def main():
 
     # GAE
     parser.add_argument('--gae', action='store_true')
+    parser.add_argument('--lam', type=float, default=0.95)
 
     args = parser.parse_args()
 

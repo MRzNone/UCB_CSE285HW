@@ -16,7 +16,7 @@ class PGAgent(BaseAgent):
         self.env = env
         self.agent_params = agent_params
         self.gamma = self.agent_params['gamma']
-        self.lam = self.gamma / 5
+        self.lam = self.agent_params['lam']
         self.standardize_advantages = self.agent_params[
             'standardize_advantages']
         self.nn_baseline = self.agent_params['nn_baseline']
