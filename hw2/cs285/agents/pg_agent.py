@@ -21,6 +21,7 @@ class PGAgent(BaseAgent):
             'standardize_advantages']
         self.nn_baseline = self.agent_params['nn_baseline']
         self.reward_to_go = self.agent_params['reward_to_go']
+        self.gae = self.agent_params['gae']
 
         # actor/policy
         self.actor = MLPPolicyPG(
@@ -46,7 +47,11 @@ class PGAgent(BaseAgent):
         q_values = self.calculate_q_vals(rewards_list)
 
         # step 2: calculate advantages that correspond to each (s_t, a_t) point
-        advantages = self.estimate_advantage(observations, q_values)
+        if self.gae:
+            advantages = self.estimate_with_gae(rewards_list, observations,
+                                                next_observations)
+        else:
+            advantages = self.estimate_advantage(observations, q_values)
 
         # TODO: step 3: use all datapoints (s_t, a_t, q_t, adv_t) to update the PG actor/policy
         ## HINT: `train_log` should be returned by your actor update method
@@ -130,6 +135,10 @@ class PGAgent(BaseAgent):
             self._calculate_gae(rew, ob, next_ob) for rew, ob, next_ob in zip(
                 rewards_list, obs_chunks, next_obs_chunks)
         ])
+
+        # normalize
+        advantages = utils.normalize(advantages, advantages.mean(),
+                                     advantages.std())
 
         return advantages
 

@@ -23,7 +23,8 @@ class PG_Trainer(object):
             'standardize_advantages':
             not (params['dont_standardize_advantages']),
             'reward_to_go': params['reward_to_go'],
-            'nn_baseline': params['nn_baseline'],
+            'nn_baseline': params['nn_baseline'] or params['gae'],
+            'gae': params['gae'],
         }
 
         train_args = {
@@ -93,6 +94,9 @@ def main():
     parser.add_argument('--scalar_log_freq', type=int, default=1)
 
     parser.add_argument('--save_params', action='store_true')
+
+    # GAE
+    parser.add_argument('--gae', action='store_true')
 
     args = parser.parse_args()
 
