@@ -11,8 +11,11 @@ import numpy as np
 import torch
 from cs285.infrastructure import pytorch_util as ptu
 
+import ray
 from cs285.infrastructure import utils
 from cs285.infrastructure.logger import Logger
+from cs285.infrastructure.parallel_gym import SeedWrapper
+from VectorGym import VectorGym
 
 # how many rollouts to save as videos to tensorboard
 MAX_NVIDEO = 2
@@ -42,7 +45,12 @@ class RL_Trainer(object):
         #############
 
         # Make the gym environment
-        self.env = gym.make(self.params['env_name'])
+        # self.env = gym.make(self.params['env_name'])
+        # ray.init()
+        self.env = SeedWrapper(
+            VectorGym(self.params['env_name'], 10, block=True))
+        self.env.observation_space = self.env.observation_space.spaces[0]
+        self.env.action_space = self.env.action_space.spaces[0]
         self.env.seed(seed)
 
         # import plotting (locally if 'obstacles' env)

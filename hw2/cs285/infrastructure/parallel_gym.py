@@ -52,7 +52,7 @@ class DAO:
             setattr(self, str(k), v)
 
 
-@ray.remote(num_cpus=1, num_gpus=0.3)
+@ray.remote(num_cpus=0, num_gpus=0.01)
 class ParallelGymEnv(object):
     """
     A ray version of the environment. Forwards all call to the
@@ -229,11 +229,37 @@ class VectorGym(object):
         m_res = partial(method, self)
 
         if self._env_attr_callable[name] and self.block:
-            res = lambda *args, **kwargs: transpose(
-                ray_nested_get(m_res(*args, **kwargs)))
+            res = lambda *args, **kwargs: ray_nested_get(m_res(
+                *args, **kwargs))
         elif not self._env_attr_callable[name] and (self.return_attr_on_call
                                                     or self.block):
             # take only the first arg for compitability for regular env
             res = ray_nested_get(m_res())[0]
 
         return res
+
+
+class SeedWrapper:
+    def __init__(self, env):
+        self.env = env
+        self.action_space = self.env.action_space
+        self.observation_space = self.env.observation_space
+        self.reward_range = self.env.reward_range
+        self.metadata = self.env.metadata
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(
+                "attempted to get missing private attribute '{}'".format(name))
+        return getattr(self.env, name)
+
+    def seed(self, seed=None):
+        state = np.random.RandomState(seed)
+
+        seeds = state.randint(np.iinfo(np.int32).max, size=self.env.num_envs)
+        while len(set(seeds)) != len(seeds):
+            seeds = state.randint(np.iinfo(np.int32).max,
+                                  size=self.env.num_envs)
+        seeds = seeds.astype(np.int32).tolist()
+
+        self.env.seed(seeds)

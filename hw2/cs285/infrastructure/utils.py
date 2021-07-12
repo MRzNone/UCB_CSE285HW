@@ -1,7 +1,12 @@
+from threading import setprofile
+from types import resolve_bases
 import numpy as np
 import time
 import copy
-from tqdm import trange
+from tqdm import tqdm
+
+from cs285.infrastructure.parallel_gym import SeedWrapper
+from VectorGym import VectorGym
 
 ############################################
 ############################################
@@ -61,11 +66,113 @@ def mean_squared_error(a, b):
 ############################################
 
 
+def if_async_env(env):
+    return isinstance(env, VectorGym) or isinstance(env, SeedWrapper)
+
+
 def sample_trajectory(env,
                       policy,
                       max_path_length,
                       render=False,
                       render_mode=('rgb_array')):
+    func = sample_trajectory_async if if_async_env(
+        env) else sample_trajectory_sync
+    return func(env=env,
+                policy=policy,
+                max_path_length=max_path_length,
+                render=render,
+                render_mode=render_mode)
+
+
+def sample_trajectory_async(env: VectorGym,
+                            policy,
+                            max_path_length,
+                            render=False,
+                            render_mode=('rgb_array')):
+    # initialize env for the beginning of a new rollout
+    ob = env.reset()
+
+    dones = np.array([False] * env.num_envs)
+
+    def _safe_append(arr, itms, checks, preproc=None):
+        for a, it, c in zip(arr, itms, checks):
+            if c:
+                if preproc is not None:
+                    it = preproc(it)
+                a.append(it)
+
+    # init vars
+    # property: env id
+    obs, acs, rewards, next_obs, terminals, image_obs = [
+        [[] for _ in range(env.num_envs)] for _ in range(6)
+    ]
+    steps = 0
+    while True:
+
+        # render image of the simulated env
+        if render:
+            env.render(select=~dones)
+            if 'rgb_array' in render_mode:
+                if hasattr(env, 'sim'):
+                    rendered_im = env.sim.render(camera_name='track',
+                                                 height=500,
+                                                 width=500,
+                                                 select=~dones)
+                    _safe_append(image_obs, rendered_im, ~dones,
+                                 lambda x: x[::-1])
+                else:
+                    rendered_im = env.render(mode=render_mode, select=~dones)
+                    _safe_append(image_obs, rendered_im, ~dones)
+            if 'human' in render_mode:
+                env.render(mode=render_mode, select=~dones)
+                time.sleep(env.model.opt.timestep)
+
+        # use the most recent ob to decide what to do
+        _safe_append(obs, ob, ~dones)
+        t_ob = [o for o in ob if o is not None]
+        ac = policy.get_action(np.array(t_ob))
+        t_ac = [None for _ in range(env.num_envs)]
+        val_idx = np.where(~dones)[0]
+        for idx, tt_ac in zip(val_idx, ac):
+            t_ac[idx] = tt_ac
+        _safe_append(acs, t_ac, ~dones)
+
+        # record result of taking that action
+        steps += 1
+
+        ob = []
+        for i, ret in enumerate(env.step(t_ac, select=~dones)):
+            if ret is None:
+                ob.append(None)
+                # dones[i] = True
+                continue
+            t_ob, t_rew, t_done, _ = ret
+
+            if t_done:
+                dones[i] = True
+            ob.append(t_ob)
+            next_obs[i].append(t_ob)
+            rewards[i].append(t_rew)
+
+        # end the rollout if the rollout ended
+        # HINT: rollout can end due to done, or due to max_path_length
+        rollout_done = np.logical_or(steps >= max_path_length, dones)
+        terminals.extend(rollout_done)
+
+        if np.all(rollout_done):
+            break
+
+    return [
+        Path(*path)
+        for path in zip(obs, image_obs, acs, rewards, next_obs, terminals)
+    ]
+
+
+def sample_trajectory_sync(env,
+                           policy,
+                           max_path_length,
+                           render=False,
+                           render_mode=('rgb_array')):
     # initialize env for the beginning of a new rollout
     ob = env.reset()
 
@@ -119,13 +226,20 @@ def sample_trajectories(env,
                         max_path_length,
                         render=False,
                         render_mode=('rgb_array')):
+    if_parallel_env = if_async_env(env)
+
     timesteps_this_batch = 0
     paths = []
     while timesteps_this_batch < min_timesteps_per_batch:
         path = sample_trajectory(env, policy, max_path_length, render,
                                  render_mode)
-        timesteps_this_batch += len(path['terminal'])
-        paths.append(path)
+
+        if if_parallel_env:
+            timesteps_this_batch = sum([p['terminal'] for p in path])
+            paths.extend(path)
+        else:
+            timesteps_this_batch += len(path['terminal'])
+            paths.append(path)
 
     return paths, timesteps_this_batch
 
@@ -136,10 +250,22 @@ def sample_n_trajectories(env,
                           max_path_length,
                           render=False,
                           render_mode=('rgb_array')):
-    paths = [
-        sample_trajectory(env, policy, max_path_length, render, render_mode)
-        for _ in trange(ntraj, desc="Sample")
-    ]
+    if_parallel_env = if_async_env(env)
+    # ntraj = (ntraj // env.num_envs) + 1 if if_parallel_env else ntraj
+
+    step_size = env.num_envs if if_parallel_env else 1
+
+    tbar = tqdm(total=ntraj, desc="Sample")
+    paths = []
+    for _ in np.arange(ntraj):
+        path = sample_trajectory(env, policy, max_path_length, render,
+                                 render_mode)
+        paths.append(path)
+
+        tbar.update(step_size)
+
+    if if_parallel_env:
+        paths = np.concatenate(paths)
 
     return paths
 
