@@ -1,9 +1,10 @@
-from threading import setprofile
-from types import resolve_bases
 import numpy as np
 import time
 import copy
 from tqdm import tqdm
+
+import time
+from collections import defaultdict
 
 from cs285.infrastructure.parallel_gym import SeedWrapper
 from VectorGym import VectorGym
