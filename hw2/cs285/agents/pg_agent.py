@@ -3,6 +3,8 @@ import numpy as np
 from itertools import accumulate
 from functools import reduce
 
+from numpy.core.fromnumeric import mean
+
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
 from cs285.infrastructure.replay_buffer import ReplayBuffer
@@ -123,6 +125,10 @@ class PGAgent(BaseAgent):
         obs_chunks = []
         next_obs_chunks = []
 
+        concat_rewards = np.concatenate(rewards_list)
+        rewards_mean = concat_rewards.mean()
+        rewards_std = concat_rewards.std()
+
         cur_st = 0
         for rewards in rewards_list:
             rew_len = len(rewards)
@@ -132,8 +138,9 @@ class PGAgent(BaseAgent):
         assert cur_st == len(obs), "Size mismatch when splitting"
 
         advantages = np.concatenate([
-            self._calculate_gae(rew, ob, next_ob) for rew, ob, next_ob in zip(
-                rewards_list, obs_chunks, next_obs_chunks)
+            self._calculate_gae(rew, ob, next_ob, rewards_mean,
+                                rewards_std) for rew, ob, next_ob in zip(
+                                    rewards_list, obs_chunks, next_obs_chunks)
         ])
 
         # normalize
@@ -142,7 +149,10 @@ class PGAgent(BaseAgent):
 
         return advantages
 
-    def _calculate_gae(self, rewards, obs, next_obs):
+    def _calculate_gae(self, rewards, obs, next_obs, rewards_mean,
+                       rewards_std):
+        rewards = (rewards_mean - mean) / (rewards_std + 1e-6)
+
         current_v = self.actor.run_baseline_prediction(obs)
         next_v = self.actor.run_baseline_prediction(next_obs)
 

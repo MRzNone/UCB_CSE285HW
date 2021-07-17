@@ -258,12 +258,17 @@ def sample_n_trajectories(env,
 
     tbar = tqdm(total=ntraj, desc="Sample")
     paths = []
-    for _ in np.arange(ntraj):
+    traj_cnt = 0
+    while traj_cnt < ntraj:
         path = sample_trajectory(env, policy, max_path_length, render,
                                  render_mode)
         paths.append(path)
 
         tbar.update(step_size)
+
+        traj_cnt += step_size
+
+    tbar.close()
 
     if if_parallel_env:
         paths = np.concatenate(paths)

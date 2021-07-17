@@ -145,7 +145,7 @@ class MLPPolicyPG(MLPPolicy):
         action_prob = self.forward(observations).log_prob(actions)
 
         if action_prob.dim() == 2:
-            action_prob = action_prob.prod(1)
+            action_prob = action_prob.sum(1)
         action_prob = action_prob.flatten()
 
         loss = -action_prob * advantages.detach()

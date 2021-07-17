@@ -48,7 +48,7 @@ class RL_Trainer(object):
         # self.env = gym.make(self.params['env_name'])
         # ray.init()
         self.env = SeedWrapper(
-            VectorGym(self.params['env_name'], 10, block=True))
+            VectorGym(self.params['env_name'], 15, block=True))
         self.env.observation_space = self.env.observation_space.spaces[0]
         self.env.action_space = self.env.action_space.spaces[0]
         self.env.seed(seed)
