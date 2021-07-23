@@ -36,6 +36,20 @@ class Trainer:
                 [np.sum(p[3]) for p in paths])
             metrics['train/max_ep_len'] = np.max([len(p[0]) for p in paths])
 
+            # Eval
+            eval_paths = self.sample_trajectory(self.agent,
+                                                self.params['max_path_len'],
+                                                self.params['num_eval_batch'])
+            metrics['eval/ep_len'] = np.mean([len(p[0]) for p in eval_paths])
+            metrics['eval/ep_len_std'] = np.std(
+                [len(p[0]) for p in eval_paths])
+            metrics['eval/rewards'] = np.mean(
+                [np.sum(p[3]) for p in eval_paths])
+            metrics['eval/rewards_std'] = np.std(
+                [np.sum(p[3]) for p in eval_paths])
+            metrics['eval/max_ep_len'] = np.max(
+                [len(p[0]) for p in eval_paths])
+
             if self.logger is not None:
                 for k, v in metrics.items():
                     self.logger.add_scalar(k, v, itr)

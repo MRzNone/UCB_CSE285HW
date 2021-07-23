@@ -254,24 +254,25 @@ def sample_n_trajectories(env,
     if_parallel_env = if_async_env(env)
     # ntraj = (ntraj // env.num_envs) + 1 if if_parallel_env else ntraj
 
-    step_size = env.num_envs if if_parallel_env else 1
-
     tbar = tqdm(total=ntraj, desc="Sample")
     paths = []
     traj_cnt = 0
     while traj_cnt < ntraj:
         path = sample_trajectory(env, policy, max_path_length, render,
                                  render_mode)
-        paths.append(path)
+
+        if if_parallel_env:
+            paths.extend(path)
+            step_size = sum([get_pathlength(p) for p in path])
+        else:
+            paths.append(path)
+            step_size = get_pathlength(path)
 
         tbar.update(step_size)
 
         traj_cnt += step_size
 
     tbar.close()
-
-    if if_parallel_env:
-        paths = np.concatenate(paths)
 
     return paths
 

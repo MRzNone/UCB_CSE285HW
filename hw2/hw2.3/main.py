@@ -17,6 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_iters', type=int, default=1000)
     parser.add_argument('--max_path_len', type=int, default=1000)
     parser.add_argument('--num_batch', type=int, default=4000)
+    parser.add_argument('--num_eval_batch', type=int, default=100)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--lam', type=float, default=0.95)
     parser.add_argument('--lr', type=float, default=0.005)

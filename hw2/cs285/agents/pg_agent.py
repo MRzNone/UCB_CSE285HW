@@ -151,7 +151,7 @@ class PGAgent(BaseAgent):
 
     def _calculate_gae(self, rewards, obs, next_obs, rewards_mean,
                        rewards_std):
-        rewards = (rewards_mean - mean) / (rewards_std + 1e-6)
+        rewards = (rewards - rewards_mean) / (rewards_std + 1e-8)
 
         current_v = self.actor.run_baseline_prediction(obs)
         next_v = self.actor.run_baseline_prediction(next_obs)
